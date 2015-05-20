@@ -12,6 +12,11 @@ import (
 	"strings"
 )
 
+func exit(message string) {
+	os.Stderr.WriteString(message)
+	os.Exit(1)
+}
+
 func run(debug bool, dir string, profile string, args []string) error {
 	// Disable logging if debug isn't enabled
 	if !debug {
@@ -80,12 +85,12 @@ func main() {
 	args := flag.Args()
 
 	if len(args) < 1 {
-		panic("Need an argument at position 0 to specify the profile")
+		exit("Need an argument at position 0 to specify the profile\n")
 	} else if len(args) < 2 {
-		panic("Need one or more arguments starting at position 1 to specify the command and arguments to run")
+		exit("Need one or more arguments starting at position 1 to specify the command and arguments to run\n")
 	}
 
 	if err := run(*debug, *dir, args[0], args[1:]); err != nil {
-		panic(err)
+		exit(fmt.Sprintf("Error: %s\n", err.Error()))
 	}
 }

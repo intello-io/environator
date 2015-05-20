@@ -9,4 +9,3 @@ install: build
 
 unittests:
 	go test github.com/dailymuse/environator/source
-
