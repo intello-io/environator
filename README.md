@@ -25,15 +25,15 @@ popd
 mkdir -p env
 
 # Let's make an example profile
-echo 'DATABASE_URL=postgres://user:pass@$127.0.0.1:5432/db' > env/example_profile.env
+echo 'DATABASE_URL=postgres://user:pass@127.0.0.1:5432/db' > env/example_profile.env
 
 # Now we can run a command against this profile. For example, to echo the new
 # var:
-e example_profile echo $$DATABASE_URL
+e example_profile echo \$DATABASE_URL
 
 # Let's create a new profile, that inherits from `example_profile.env` and
 # adds new environment variables:
-echo '{{ source "example_profile" }}' > env/example_profile_2.env
+echo '{{ source "example_profile" nil }}' > env/example_profile_2.env
 echo 'REDIS_URL=redis://localhost:6379/0' >> env/example_profile_2.env
 
 # Now we can use that file. Let's print the overall environment:
