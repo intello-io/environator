@@ -47,7 +47,7 @@ echo '{{ heroku "my_heroku_app_name" }}' > env/my_heroku_app_name.env
 e my_heroku_app_name env
 ```
 
-## How It Works ##
+## Profiles ##
 
 You define profiles in the `env` directory of your project repo. Each profile
 is a simple bash file specifying environment variables to export.
@@ -55,3 +55,30 @@ is a simple bash file specifying environment variables to export.
 Environator parses these profiles using golang's 
 [text/template](https://golang.org/pkg/text/template/) library, so you can use
 that to add special logic to the profiles.
+
+Two special functions are exposed for profiles:
+
+* `{{ source "profile_name" args }}` - Imports the profile located at
+  `env/profile_name.env`, passing in `args` as the template args.
+* `{{ heroku "app_name" }}` - Imports the environment variables from the
+  heroku app `app_name`.
+
+These variables are additionally accessible for profiles:
+
+* `debug` - Whether debug mode is enabled.
+* `dir` - The directory from which the command will be executed.
+* `source` - The profile that was passed into environator.
+* `cmd` - The command name and arguments.
+
+Because profiles compile to just bash, you can do arbitrary manipulation of
+environment variables. For example, at The Muse we use python with virtualenv
+and go. The profiles that are tied to our Heroku apps look something like this:
+
+```bash
+source venv/bin/activate
+GOPATH=`pwd`/muselytics:$GOPATH
+{{ heroku "app-name" }}
+```
+
+Then we simply store that in `env/app-name.env`, so that the Heroku app name
+is the same as the profile name.
