@@ -9,7 +9,9 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 func exit(message string) {
@@ -75,6 +77,19 @@ func run(debug bool, dir string, profile string, args []string) error {
 		return err
 	}
 
+	// Capture & ignore interrupts
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT)
+	signal.Notify(c, syscall.SIGTERM)
+
+	go func() {
+		for sig := range c {
+			if err := cmd.Process.Signal(sig); err != nil {
+				exit(fmt.Sprintf("Could not redirect signal to child process: %s\n", err.Error()))
+			}
+		}
+	}()
+
 	return cmd.Wait()
 }
 
@@ -91,6 +106,8 @@ func main() {
 	}
 
 	if err := run(*debug, *dir, args[0], args[1:]); err != nil {
-		exit(fmt.Sprintf("Error: %s\n", err.Error()))
+		if err.Error() != "signal: terminated" {
+			exit(fmt.Sprintf("Error: %s\n", err.Error()))
+		}
 	}
 }
