@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
-	"os/signal"
 	"strings"
 	"syscall"
 )
@@ -62,35 +60,11 @@ func run(debug bool, dir string, profile string, args []string) error {
 		bashString.WriteString(fmt.Sprintf("cd %s; ", dir))
 	}
 
-	bashString.WriteString(strings.Join(args, " "))
+	bashString.WriteString(fmt.Sprintf("exec %s", strings.Join(args, " ")))
 
 	log.Printf("Running: %s\n", bashString.String())
 
-	// Create the command
-	cmd := exec.Command("bash", "-c", bashString.String())
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	// Run the command
-	if err = cmd.Start(); err != nil {
-		return err
-	}
-
-	// Capture & ignore interrupts
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT)
-	signal.Notify(c, syscall.SIGTERM)
-
-	go func() {
-		for sig := range c {
-			if err := cmd.Process.Signal(sig); err != nil {
-				exit(fmt.Sprintf("Could not redirect signal to child process: %s\n", err.Error()))
-			}
-		}
-	}()
-
-	return cmd.Wait()
+	return syscall.Exec("/bin/bash", []string{"bash", "-c", bashString.String()}, os.Environ())
 }
 
 func main() {
@@ -106,8 +80,6 @@ func main() {
 	}
 
 	if err := run(*debug, *dir, args[0], args[1:]); err != nil {
-		if err.Error() != "signal: terminated" {
-			exit(fmt.Sprintf("Error: %s\n", err.Error()))
-		}
+		exit(fmt.Sprintf("Error: %s\n", err.Error()))
 	}
 }
