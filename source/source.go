@@ -1,14 +1,13 @@
 package source
 
 import (
-	//"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"github.com/bgentry/go-netrc/netrc"
 	"github.com/bgentry/heroku-go"
 	"io"
-	// "io/ioutil"
+	"os"
 	"os/user"
 	"path/filepath"
 	"text/template"
@@ -79,12 +78,21 @@ func (self *Source) sourceHeroku(name string) (string, error) {
 }
 
 func (self *Source) Execute(w io.Writer, name string, params interface{}) error {
+	path := os.Getenv("ENVIRONATOR_PATH")
+
+	if path == "" {
+		path = "env"
+	}
+
+	filename := fmt.Sprintf("%s.env", name)
+	fullpath := filepath.Join(path, filename)
+
 	funcMap := template.FuncMap{
 		"source": self.ExecuteString,
 		"heroku": self.sourceHeroku,
 	}
 
-	tmpl, err := template.New(fmt.Sprintf("%s.env", name)).Funcs(funcMap).ParseFiles(filepath.Join("env", fmt.Sprintf("%s.env", name)))
+	tmpl, err := template.New(filename).Funcs(funcMap).ParseFiles(fullpath)
 
 	if err != nil {
 		return err
