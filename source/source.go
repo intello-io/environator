@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -67,10 +68,7 @@ func (self *Source) sourceHeroku(name string) (string, error) {
 		_, ok := BLACKLISTED_HEROKU_VARS[k]
 
 		if !ok {
-			buffer.WriteString(k)
-			buffer.WriteRune('=')
-			buffer.WriteString(v)
-			buffer.WriteRune('\n')
+			buffer.WriteString(fmt.Sprintf("%s='%s'\n", k, strings.Replace(v, "'", "\\'", -1)))
 		}
 	}
 
