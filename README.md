@@ -1,4 +1,4 @@
-# Environator #
+# Environator [![Build Status](https://travis-ci.org/dailymuse/environator.png)](https://travis-ci.org/dailymuse/environator) #
 
 ## About ##
 
