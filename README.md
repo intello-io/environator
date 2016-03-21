@@ -27,9 +27,8 @@ mkdir -p env
 # Let's make an example profile
 echo 'DATABASE_URL=postgres://user:pass@127.0.0.1:5432/db' > env/example_profile.env
 
-# Now we can run a command against this profile. For example, to echo the new
-# var:
-e example_profile echo \$DATABASE_URL
+# Now we can run a command against this profile. For example, to print the new value of DATABASE_URL:
+e example_profile printenv DATABASE_URL
 
 # Let's create a new profile, that inherits from `example_profile.env` and
 # adds new environment variables:
