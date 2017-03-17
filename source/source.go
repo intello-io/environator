@@ -2,16 +2,17 @@ package source
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"github.com/bgentry/go-netrc/netrc"
-	"github.com/bgentry/heroku-go"
 	"io"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/bgentry/go-netrc/netrc"
+	"github.com/bgentry/heroku-go"
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 var (
@@ -29,6 +30,7 @@ var (
 
 type Source struct {
 	herokuClient *heroku.Client
+	vaultClient  *vaultapi.Client
 }
 
 func (self *Source) sourceHeroku(name string) (string, error) {
@@ -36,19 +38,19 @@ func (self *Source) sourceHeroku(name string) (string, error) {
 		usr, err := user.Current()
 
 		if err != nil {
-			return "", errors.New(fmt.Sprintf("Could not get the current user: %s", err))
+			return "", fmt.Errorf("Could not get the current heroku user: %s", err)
 		}
 
 		config, err := netrc.ParseFile(filepath.Join(usr.HomeDir, ".netrc"))
 
 		if err != nil {
-			return "", errors.New(fmt.Sprintf("Could not parse ~/.netrc: %s\n", err))
+			return "", fmt.Errorf("Could not parse ~/.netrc: %s\n", err)
 		}
 
 		machineConfig := config.FindMachine("api.heroku.com")
 
 		if machineConfig == nil {
-			return "", errors.New(fmt.Sprintf("No entry found for api.heroku.com in ~/.netrc. Please run `heroku login` first."))
+			return "", fmt.Errorf("No entry found for api.heroku.com in ~/.netrc. Please run `heroku login` first.")
 		}
 
 		self.herokuClient = &heroku.Client{
@@ -75,6 +77,57 @@ func (self *Source) sourceHeroku(name string) (string, error) {
 	return buffer.String(), nil
 }
 
+func (self *Source) sourceVault(path string) (string, error) {
+	if self.vaultClient == nil {
+		config := vaultapi.DefaultConfig()
+
+		err := config.ReadEnvironment()
+
+		if err != nil {
+			return "", fmt.Errorf("Could not read environment variables into a vault config: %s", err)
+		}
+
+		client, err := vaultapi.NewClient(config)
+
+		if err != nil {
+			return "", fmt.Errorf("Could not connect to vault: %s", err)
+		}
+
+		self.vaultClient = client
+	}
+
+	// TODO: We currently pull all the keys, then we read each key one at a
+	// time, resulting in a lot of API calls. Is there a way to read all of
+	// the secrets in one API call?
+	secrets, err := self.vaultClient.Logical().List(path)
+
+	if err != nil {
+		return "", fmt.Errorf("Could not read vault config: %s", err)
+	}
+
+	var buffer bytes.Buffer
+
+	if secrets != nil {
+		keys := secrets.Data["keys"].([]interface{})
+
+		for _, key := range keys {
+			secret, err := self.vaultClient.Logical().Read(fmt.Sprintf("%s/%s", path, key.(string)))
+
+			if err != nil {
+				return "", fmt.Errorf("Could not read vault config: %s", err)
+			}
+
+			if secret != nil {
+				value := secret.Data["value"]
+				fmt.Printf("%s=%s\n", key, value)
+			}
+
+		}
+	}
+
+	return buffer.String(), nil
+}
+
 func (self *Source) Execute(w io.Writer, name string, params interface{}) error {
 	path := os.Getenv("ENVIRONATOR_PATH")
 
@@ -88,6 +141,7 @@ func (self *Source) Execute(w io.Writer, name string, params interface{}) error 
 	funcMap := template.FuncMap{
 		"source": self.ExecuteString,
 		"heroku": self.sourceHeroku,
+		"vault":  self.sourceVault,
 	}
 
 	tmpl, err := template.New(filename).Funcs(funcMap).ParseFiles(fullpath)
