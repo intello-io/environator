@@ -55,12 +55,16 @@ Environator parses these profiles using golang's
 [text/template](https://golang.org/pkg/text/template/) library, so you can use
 that to add special logic to the profiles.
 
-Two special functions are exposed for profiles:
+These functions are exposed for profiles:
 
 * `{{ source "profile_name" args }}` - Imports the profile located at
   `env/profile_name.env`, passing in `args` as the template args.
 * `{{ heroku "app_name" }}` - Imports the environment variables from the
   heroku app `app_name`.
+* `{{ vault "path/to/keys" }}` - Imports all of the keys in a vault directory
+  as environment variables. Note that you'll need existing environment
+  variables defined either in the profile or elsewhere to configure the [vault
+  location and authorization](https://www.vaultproject.io/docs/commands/environment.html).
 
 These variables are additionally accessible for profiles:
 
