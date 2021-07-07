@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/dailymuse/environator/source"
+	"github.com/intello-io/environator/source"
 	"io/ioutil"
 	"log"
 	"os"
