@@ -10,3 +10,5 @@ require (
 	github.com/hashicorp/vault/sdk v0.2.0 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 )
+
+replace github.com/cenkalti/backoff v0.0.3 => github.com/cenkalti/backoff v0.0.4
